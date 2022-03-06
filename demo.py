@@ -21,7 +21,7 @@ NUM_EPOCH = 30
 HEIGHT = 32
 WIDITH = 32
 
-DATA = '/content/drive/MyDrive/oriented_bbox/'
+# DATA = '/content/drive/MyDrive/oriented_bbox/'
 
 # train_dset = dict(np.load('/content/drive/MyDrive/oriented_bbox/train.npz'))
 # test_dset = dict(np.load('/content/drive/MyDrive/oriented_bbox/test.npz'))
@@ -38,12 +38,12 @@ DATA = '/content/drive/MyDrive/oriented_bbox/'
 # visualize(test_dset['images'][idx], [test_dset['boxes'][idx]])
 
 class BoxDataSet(Dataset):
-    def __init__(self, split="train"):
+    def __init__(self, split="train", dataset_dir = None):
         super(BoxDataSet, self).__init__()
         assert split in ["train", "test"], "split must be train or test"
         self.split = split
     
-        dataset = np.load(os.path.join(DATA, split+".npz"))
+        dataset = np.load(os.path.join(dataset_dir, split+".npz"))
         self.data = dataset['images'] ##(n, 32, 32)
         self.label = dataset['boxes'] ###(n, (top_left, down_left, down_right, top_right), (x, y))
 
@@ -134,9 +134,9 @@ def parse_out(pred:torch.Tensor):
     p4 = pred[..., 4] * np.pi
     return torch.stack([p0,p1,p2,p3,p4], dim=-1)
 
-def main(loss_type:str="giou", enclosing_type:str="aligned"):
-    ds_train = BoxDataSet("train")
-    ds_test = BoxDataSet("test")
+def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=None):
+    ds_train = BoxDataSet("train", dataset_dir)
+    ds_test = BoxDataSet("test", dataset_dir)
     ld_train = DataLoader(ds_train, BATCH_SIZE, drop_last=False, shuffle=True, num_workers=4)
     ld_test = DataLoader(ds_test, BATCH_SIZE, shuffle=False, num_workers=4)
     
@@ -230,8 +230,9 @@ if __name__ == "__main__":
     parser.add_argument("--loss", type=str, default="diou", help="type of loss function. support: diou or giou. [default: diou]")
     parser.add_argument("--enclosing", type=str, default="smallest", 
         help="type of enclosing box. support: aligned (axis-aligned) or pca (rotated) or smallest (rotated). [default: smallest]")
+    parser.add_argument("--dataset_dir", type=str, default=None, help="input dataset dir")
     flags = parser.parse_args()
-    main(flags.loss, flags.enclosing)
+    main(flags.loss, flags.enclosing, flags.dataset_dir)
 
 
     # corners, label = create_data(200)
