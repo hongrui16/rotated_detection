@@ -129,8 +129,10 @@ class RobNet(nn.Module):
 def parse_out(pred:torch.Tensor):
     p0 = (pred[..., 0] - 0.5) * WIDITH
     p1 = (pred[..., 1] - 0.5) * HEIGHT
-    p2 = (pred[..., 2] - 0.5) * WIDITH
-    p3 = (pred[..., 3] - 0.5) * HEIGHT
+    # p2 = (pred[..., 2] - 0.5) * WIDITH
+    # p3 = (pred[..., 3] - 0.5) * HEIGHT
+    p2 = (pred[..., 2] * 0.5) * WIDITH
+    p3 = (pred[..., 3] * 0.5) * HEIGHT
     p4 = pred[..., 4] * np.pi
     return torch.stack([p0,p1,p2,p3,p4], dim=-1)
 
