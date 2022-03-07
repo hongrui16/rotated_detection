@@ -11,10 +11,14 @@ import argparse
 from utiles import box2corners
 from oriented_iou_loss import cal_diou, cal_giou
 import math
+import torchvision.models as models
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from models.modelM3 import ModelM3
+from models.modelM5 import ModelM5
+from models.modelM7 import ModelM7
 
 BATCH_SIZE = 256
 NUM_EPOCH = 30 
@@ -78,7 +82,6 @@ class BoxDataSet(Dataset):
 
 
 class RobNet(nn.Module):
-
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 16, kernel_size=3, stride=2, dilation=1)
@@ -126,6 +129,43 @@ class RobNet(nn.Module):
         return out
 
 
+class BobNet(nn.Module):
+    def __init__(self, pretrained = True, bk_weight_filepath = None):
+        super().__init__()
+        self.backbone = ModelM3(pretrained = pretrained, weight_filepath = bk_weight_filepath)
+        self.conv1 = nn.Conv2d(176, 128, kernel_size=3, stride=2)
+        self.conv2 = nn.Conv2d(128, 64, kernel_size=3, stride=2)
+        self.rotate = nn.Conv2d(64, 1, kernel_size=4, stride=1)
+        # self.cls_prob = nn.Conv2d(128, 2, kernel_size=1, stride=1)
+        self.bbox = nn.Conv2d(64, 4, kernel_size=4, stride=1)
+        self.sig = nn.Sigmoid()
+
+    def forward(self, x):
+        # print('0', x.size())
+        _, feature = self.backbone(x) ##[B, 176, 8, 8]
+        ox = F.relu(self.conv1(feature), inplace=True)
+        # print('1', x.size())
+        
+        ox = F.relu(self.conv2(ox), inplace=True)
+        # print('2', x.size())
+
+        rotate = self.rotate(ox)
+        # print('rotate 0', rotate.size())
+
+        rotate = self.sig(rotate)
+        # print('rotate', rotate.size())
+
+        bbox = self.bbox(ox)
+        bbox = self.sig(bbox)
+        # print('bbox', bbox.size())
+
+        # return rotate, bbox
+        out = torch.cat((bbox, rotate), dim=1)
+        # print('out', out.size()) ###out torch.Size([256, 5, 1, 1])
+
+        return out
+
+
 def parse_out(pred:torch.Tensor):
     p0 = (pred[..., 0] - 0.5) * WIDITH
     p1 = (pred[..., 1] - 0.5) * HEIGHT
@@ -142,7 +182,8 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
     ld_train = DataLoader(ds_train, batchsize, drop_last=False, shuffle=True, num_workers=4)
     ld_test = DataLoader(ds_test, batchsize, shuffle=False, num_workers=4)
     
-    net = RobNet()
+    # net = RobNet()
+    net = BobNet(pretrained = True, bk_weight_filepath = 'weights/modelM3.pth')
     net.to("cuda:0")
     optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
