@@ -135,9 +135,9 @@ class BobNet(nn.Module):
         self.backbone = ModelM3(pretrained = pretrained, weight_filepath = bk_weight_filepath)
         self.conv1 = nn.Conv2d(176, 128, kernel_size=3, padding = 1, stride=2)
         self.conv2 = nn.Conv2d(128, 64, kernel_size=3, stride=1)
-        self.rotate = nn.Conv2d(64, 1, kernel_size=4, stride=1)
+        self.rotate = nn.Conv2d(64, 1, kernel_size=2, stride=1)
         # self.cls_prob = nn.Conv2d(128, 2, kernel_size=1, stride=1)
-        self.bbox = nn.Conv2d(64, 4, kernel_size=4, stride=1)
+        self.bbox = nn.Conv2d(64, 4, kernel_size=2, stride=1)
         self.sig = nn.Sigmoid()
 
     def forward(self, x):
