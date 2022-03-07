@@ -275,8 +275,14 @@ if __name__ == "__main__":
         help="type of enclosing box. support: aligned (axis-aligned) or pca (rotated) or smallest (rotated). [default: smallest]")
     parser.add_argument("--dataset_dir", type=str, default=None, help="input dataset dir")
     parser.add_argument("--batchsize", type=int, default=128, help="batch size")
+    parser.add_argument("--gpu", type=str, default=None, help="gpu id")
 
     flags = parser.parse_args()
+    
+    if not flags.gpu is None:
+        os.environ["CUDA_VISIBLE_DEVICES"]=flags.gpu
+
+    
     main(flags.loss, flags.enclosing, flags.dataset_dir, flags.batchsize)
 
 

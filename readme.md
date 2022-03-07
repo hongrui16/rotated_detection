@@ -76,6 +76,8 @@ The three types of enclosing box can be chosen with:
     python demo.py --enclosing smallest     # [default]. smallest box. best performance.
 
 ## Acknowledgement
+https://github.com/lilanxiao/Rotated_IoU
+
 The idea of calculating intersection area is inspired by this paper:
 
     @INPROCEEDINGS{8886046,
