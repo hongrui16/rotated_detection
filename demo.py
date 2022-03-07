@@ -143,6 +143,7 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
     ld_test = DataLoader(ds_test, batchsize, shuffle=False, num_workers=4)
     
     net = RobNet()
+    print('net', net)
     net.to("cuda:0")
     optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
