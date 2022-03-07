@@ -176,7 +176,8 @@ def parse_out(pred:torch.Tensor):
     p4 = pred[..., 4] * np.pi
     return torch.stack([p0,p1,p2,p3,p4], dim=-1)
 
-def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=None, batchsize:int = 128):
+def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=None, batchsize:int = 128, args = None):
+    n_epoch = args.n_epoch
     ds_train = BoxDataSet("train", dataset_dir)
     ds_test = BoxDataSet("test", dataset_dir)
     ld_train = DataLoader(ds_train, batchsize, drop_last=False, shuffle=True, num_workers=4)
@@ -189,7 +190,7 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     num_batch = len(ds_train)//(batchsize)
     
-    for epoch in range(1, NUM_EPOCH+1):
+    for epoch in range(1, n_epoch+1):
         # train
         net.train()
         for i, data in enumerate(ld_train, 1):
@@ -270,12 +271,13 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--loss", type=str, default="diou", help="type of loss function. support: diou or giou. [default: diou]")
+    parser.add_argument("--loss", type=str, default="giou", help="type of loss function. support: diou or giou. [default: diou]")
     parser.add_argument("--enclosing", type=str, default="smallest", 
         help="type of enclosing box. support: aligned (axis-aligned) or pca (rotated) or smallest (rotated). [default: smallest]")
     parser.add_argument("--dataset_dir", type=str, default=None, help="input dataset dir")
     parser.add_argument("--batchsize", type=int, default=128, help="batch size")
     parser.add_argument("--gpu", type=str, default=None, help="gpu id")
+    parser.add_argument("--n_epoch", type=int, default=100, help="num of epoch")
 
     flags = parser.parse_args()
     
@@ -283,7 +285,7 @@ if __name__ == "__main__":
         os.environ["CUDA_VISIBLE_DEVICES"]=flags.gpu
 
     
-    main(flags.loss, flags.enclosing, flags.dataset_dir, flags.batchsize)
+    main(flags.loss, flags.enclosing, flags.dataset_dir, flags.batchsize, args = flags)
 
 
     # corners, label = create_data(200)
