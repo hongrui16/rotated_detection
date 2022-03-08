@@ -400,10 +400,10 @@ def YOLO_COR(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str
                 image, label = data
                 image = image.cuda()                           
                 image = image.view([image.size()[0], -1, HEIGHT, WIDITH])  
-                box = box.view([BATCH_SIZE, -1, 8])        
+                # box = box.view([BATCH_SIZE, -1, 8])        
                 # box = box.transpose(1, 2)                    
                 label = label.cuda()                         
-                # label = label.view([image.size()[0], -1, 5])      
+                label = label.view([image.size()[0], -1, 8])      
                 
                 pred = net(image)                              
                 # pred = pred.transpose(1,2)                  
