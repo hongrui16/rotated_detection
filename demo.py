@@ -383,10 +383,12 @@ def YOLO_COR(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str
             optimizer.step()
 
             if i%10 == 0:
-                iou_mask = (iou > 0).float()
-                mean_iou = torch.sum(iou) / (torch.sum(iou_mask) + 1e-8)
+                # iou_mask = (iou > 0).float()
+                # mean_iou = torch.sum(iou) / (torch.sum(iou_mask) + 1e-8)
+                # print("[Epoch %d: %d/%d] train loss: %.4f  mean_iou: %.4f"
+                #     %(epoch, i, num_batch, iou_loss.detach().cpu().item(), mean_iou.detach().cpu().item()))
                 print("[Epoch %d: %d/%d] train loss: %.4f  mean_iou: %.4f"
-                    %(epoch, i, num_batch, iou_loss.detach().cpu().item(), mean_iou.detach().cpu().item()))
+                    %(epoch, i, num_batch, iou_loss.detach().cpu().item(),  0))
         lr_scheduler.step()
 
         # validate
@@ -420,13 +422,13 @@ def YOLO_COR(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str
 
                 iou_loss = torch.mean(iou_loss)
                 aver_loss += iou_loss.cpu().item()
-                iou_mask = (iou > 0).float()
-                mean_iou = torch.sum(iou) / (torch.sum(iou_mask) + 1e-8)
-                aver_mean_iou += mean_iou.cpu().item()
+                # iou_mask = (iou > 0).float()
+                # mean_iou = torch.sum(iou) / (torch.sum(iou_mask) + 1e-8)
+                # aver_mean_iou += mean_iou.cpu().item()
         print("... validate epoch %d ..."%epoch)
         n_iter = len(ds_test)/batchsize
         print("average loss: %.4f"%(aver_loss/n_iter))
-        print("average iou: %.4f"%(aver_mean_iou/n_iter))
+        # print("average iou: %.4f"%(aver_mean_iou/n_iter))
         print("..............................")
     
 if __name__ == "__main__":
