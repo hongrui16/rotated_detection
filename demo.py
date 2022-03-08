@@ -94,7 +94,7 @@ class CornersDataSet(Dataset):
     
     
     def convert_cc_to_c(self, corners):
-        return corners[[0,3,2,1]]
+        return (1/32)*corners[[0,3,2,1]]
 
     def __len__(self) -> int:
         return self.data.shape[0]
