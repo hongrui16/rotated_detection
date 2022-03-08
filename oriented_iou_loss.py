@@ -2,6 +2,8 @@ import torch
 import numpy as np
 from box_intersection_2d import oriented_box_intersection_2d
 from min_enclosing_box import smallest_bounding_box
+import cv2
+
 
 def box2corners_th(box:torch.Tensor)-> torch.Tensor:
     """convert box coordinate to corners
@@ -56,6 +58,7 @@ def cal_iou(box1:torch.Tensor, box2:torch.Tensor):
     iou = inter_area / u
     return iou, corners1, corners2, u
 
+
 def cal_diou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="smallest"):
     """calculate diou loss
 
@@ -71,6 +74,9 @@ def cal_diou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="smallest"
     d2 = x_offset*x_offset + y_offset*y_offset
     diou_loss = 1. - iou + d2/c2
     return diou_loss, iou
+
+
+
 
 def cal_giou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="smallest"):
     iou, corners1, corners2, u = cal_iou(box1, box2)

@@ -6,6 +6,8 @@ author: lanxiao li
 2020.8
 '''
 import numpy as np
+import math
+
 import matplotlib.pyplot as plt
 EPSILON = 1e-8
 
@@ -259,22 +261,6 @@ def test_box2corners():
     plt.axis("equal")
     plt.show()
 
-def test_box2corners(box1, box2):
-    print('box1', box1)
-    corners = bbox2corners(box1)
-    plt.plot(corners[(0, 1, 2, 3, 0), 0], corners[(0, 1, 2, 3, 0), 1], c = 'blue')
-    corners1 = box2corners(*box1)
-
-    print('corners1', corners1)
-    plt.plot(corners1[(0, 1, 2, 3, 0), 0], corners1[(0, 1, 2, 3, 0), 1], c = 'blue')
-
-    corners = bbox2corners(box2)
-    plt.plot(corners[(0, 1, 2, 3, 0), 0], corners[(0, 1, 2, 3, 0), 1], c = 'red')
-    corners1 = box2corners(*box2)
-
-    print('corners2', corners1)
-    plt.plot(corners1[(0, 1, 2, 3, 0), 0], corners1[(0, 1, 2, 3, 0), 1], c = 'red')
-    plt.show()
 
 def test_box_intersection(box1, box2):
     corners1 = box2corners(*box1)
@@ -326,16 +312,79 @@ def test_intersection_area(box1, box2):
     plt.axis("equal")
     plt.show()
 
+
+
+def rbbox_to_corners(rbbox):
+    # generate clockwise corners and rotate it clockwise
+    # 顺时针方向返回角点位置
+    cx, cy, x_d, y_d, angle = rbbox
+    a_cos = math.cos(angle)
+    a_sin = math.sin(angle)
+    corners_x = [-x_d / 2, -x_d / 2, x_d / 2, x_d / 2]
+    corners_y = [-y_d / 2, y_d / 2, y_d / 2, -y_d / 2]
+    corners = [[0, 0]] * 4
+    for i in range(4):
+        corners[i][0] = a_cos * corners_x[i] + \
+                     a_sin * corners_y[i] + cx
+        corners[i][1] = -a_sin * corners_x[i] + \
+                     a_cos * corners_y[i] + cy
+    return np.array(corners)
+
+
+def test_box2corners_fun(box1, box2):
+    print('box1', box1)
+    corners = bbox2corners(box1)
+    print('corners', corners)
+    plt.plot(corners[(0, 1, 2, 3, 0), 0], corners[(0, 1, 2, 3, 0), 1], c = 'blue')
+
+    corners1 = box2corners(*box1)
+    print('corners1', np.round(corners1, 2))
+    plt.plot(corners1[(0, 1, 2, 3, 0), 0], corners1[(0, 1, 2, 3, 0), 1], c = 'blue')
+
+    corners = bbox2corners(box2)
+    print('corners', corners)
+    plt.plot(corners[(0, 1, 2, 3, 0), 0], corners[(0, 1, 2, 3, 0), 1], c = 'red')
+
+    corners1 = box2corners(*box2)
+    print('corners2',  np.round(corners1, 2))
+    plt.plot(corners1[(0, 1, 2, 3, 0), 0], corners1[(0, 1, 2, 3, 0), 1], c = 'red')
+
+    plt.show()
+
+
+def test_rbbox_to_corners(box1, box2):
+    print('box1', box1)
+    corners = bbox2corners(box1.copy())
+    print('corners', corners)
+    plt.plot(corners[(0, 1, 2, 3, 0), 0], corners[(0, 1, 2, 3, 0), 1], c = 'blue')
+
+    corners1 = rbbox_to_corners(box1.copy())
+    print('corners1', np.round(corners1, 2))
+    plt.plot(corners1[(0, 1, 2, 3, 0), 0], corners1[(0, 1, 2, 3, 0), 1], c = 'blue')
+
+    # corners = bbox2corners(box2)
+    # print('corners', corners)
+    # plt.plot(corners[(0, 1, 2, 3, 0), 0], corners[(0, 1, 2, 3, 0), 1], c = 'red')
+
+    # corners1 = rbbox_to_corners(box2)
+    # print('corners2',  np.round(corners1, 2))
+    # plt.plot(corners1[(0, 1, 2, 3, 0), 0], corners1[(0, 1, 2, 3, 0), 1], c = 'red')
+
+    plt.show()
+
+
 if __name__ == "__main__":
     # test_line_seg_intersection()
     # test_box2corners()
     # test_point_in_box()
     
-    box1 = np.array([0, 0, 2, 4, 6*np.pi/8])
+    box1 = np.array([1, 2, 2, 4, np.pi/3])
     box2 = np.array([0, 0, 2, 4, -np.pi/8])
 
     # box2 = np.array([1, 1, 4, 4, -np.pi/4])
-    test_box2corners(box1, box2)
+    # test_box2corners_fun(box1, box2)
+    test_rbbox_to_corners(box1, box2)
+    
 
     # test_box_intersection(box1, box2)
     # test_intersection_area(box1, box2)
