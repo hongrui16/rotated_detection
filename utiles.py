@@ -7,6 +7,7 @@ author: lanxiao li
 '''
 import numpy as np
 import math
+import cv2
 
 import matplotlib.pyplot as plt
 EPSILON = 1e-8
@@ -372,19 +373,61 @@ def test_rbbox_to_corners(box1, box2):
 
     plt.show()
 
+def bounds(x,y,w,h,theta):
+#    theta = theta * math.pi / 180
+
+   A = ( x, y+round((math.sin(theta)*w), 2) )
+   B = ( x+round((w/math.sin(theta)), 2), y+round((math.sin(theta)*w), 2) )
+   C = ( x+round((w/math.sin(theta)), 2), y+round((math.cos(theta)*h), 2) )
+   D = ( x, y+round((math.cos(theta)*h), 2) )
+   print(A)
+   print(B)
+   print(C)
+   print(D)
+   return np.array([A,B,C,D])
+
+
+
+def test_bounds(box1, box2):
+    print('box1', box1)
+    # corners = bbox2corners(box1.copy())
+    # print('corners', corners)
+    # plt.plot(corners[(0, 1, 2, 3, 0), 0], corners[(0, 1, 2, 3, 0), 1], c = 'blue')
+
+    corners1 = bounds(*box1.copy())
+    print('corners1', np.round(corners1, 2))
+    plt.plot(corners1[(0, 1, 2, 3, 0), 0], corners1[(0, 1, 2, 3, 0), 1], c = 'blue')
+
+    # corners = bbox2corners(box2)
+    # print('corners', corners)
+    # plt.plot(corners[(0, 1, 2, 3, 0), 0], corners[(0, 1, 2, 3, 0), 1], c = 'red')
+
+    # corners1 = rbbox_to_corners(box2)
+    # print('corners2',  np.round(corners1, 2))
+    # plt.plot(corners1[(0, 1, 2, 3, 0), 0], corners1[(0, 1, 2, 3, 0), 1], c = 'red')
+
+    plt.show()
 
 if __name__ == "__main__":
     # test_line_seg_intersection()
     # test_box2corners()
     # test_point_in_box()
-    
-    box1 = np.array([1, 2, 2, 4, np.pi/3])
-    box2 = np.array([0, 0, 2, 4, -np.pi/8])
+    print(cv2.__version__)
+    box1 = np.array([0, 2, 2, 4, np.pi/6])
+    box2 = np.array([0, 2, 2, 4, -np.pi/6])
 
     # box2 = np.array([1, 1, 4, 4, -np.pi/4])
     # test_box2corners_fun(box1, box2)
-    test_rbbox_to_corners(box1, box2)
-    
+    # test_rbbox_to_corners(box1, box2)
+    # test_bounds(box1, box2)
+
 
     # test_box_intersection(box1, box2)
     # test_intersection_area(box1, box2)
+    rect = np.array([[100, 50], [150, 50], [150, 150], [100, 150]], dtype=np.int32)
+    rect_r = cv2.minAreaRect(rect)
+    (x,y),(w,h),a = rect_r
+    print((x,y),(w,h), a)
+    
+    new_rect = cv2.boxPoints(rect_r).astype(np.int32)
+    print(new_rect)

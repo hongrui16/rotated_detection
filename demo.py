@@ -41,6 +41,75 @@ WIDITH = 32
 # idx = np.random.randint(1000)
 # visualize(test_dset['images'][idx], [test_dset['boxes'][idx]])
 
+def cos_dist(a, b):
+    if len(a) != len(b):
+        return None
+    part_up = 0.0
+    a_sq = 0.0
+    b_sq = 0.0
+    # print(a, b)
+    # print(zip(a, b))
+    for a1, b1 in zip(a, b):
+        part_up += a1*b1
+        a_sq += a1**2
+        b_sq += b1**2
+    part_down = math.sqrt(a_sq*b_sq)
+    if part_down == 0.0:
+        return None
+    else:
+        return part_up / part_down
+
+def order_points_quadrangle(pts):
+    # sort the points based on their x-coordinates
+    xSorted = pts[np.argsort(pts[:, 0]), :]
+
+    # grab the left-most and right-most points from the sorted
+    # x-roodinate points
+    leftMost = xSorted[:2, :]
+    rightMost = xSorted[2:, :]
+
+    # now, sort the left-most coordinates according to their
+    # y-coordinates so we can grab the top-left and bottom-left
+    # points, respectively
+    leftMost = leftMost[np.argsort(leftMost[:, 1]), :]
+    (tl, bl) = leftMost
+
+    # now that we have the top-left and bottom-left coordinate, use it as an
+    # base vector to calculate the angles between the other two vectors
+
+    vector_0 = np.array(bl-tl)
+    vector_1 = np.array(rightMost[0]-tl)
+    vector_2 = np.array(rightMost[1]-tl)
+
+    angle = [np.arccos(cos_dist(vector_0, vector_1)), np.arccos(cos_dist(vector_0, vector_2))]
+    (br, tr) = rightMost[np.argsort(angle), :]
+
+    # return the coordinates in top-left, top-right,
+    # bottom-right, and bottom-left order
+    return np.array([tl, tr, br, bl], dtype="float32")
+    
+
+
+
+def xywha2points(x):
+    # 带旋转角度，顺时针正，+-0.5pi;返回四个点坐标
+    cx = x[0]; cy = x[1]; w = x[2]; h = x[3]; a = x[4]
+    xmin = cx - w*0.5; xmax = cx + w*0.5; ymin = cy - h*0.5; ymax = cy + h*0.5
+    t_x0=xmin; t_y0=ymin; t_x1=xmin; t_y1=ymax; t_x2=xmax; t_y2=ymax; t_x3=xmax; t_y3=ymin
+    R = np.eye(3)
+    R[:2] = cv2.getRotationMatrix2D(angle=-a*180, center=(cx,cy), scale=1)
+    x0 = t_x0*R[0,0] + t_y0*R[0,1] + R[0,2] 
+    y0 = t_x0*R[1,0] + t_y0*R[1,1] + R[1,2] 
+    x1 = t_x1*R[0,0] + t_y1*R[0,1] + R[0,2] 
+    y1 = t_x1*R[1,0] + t_y1*R[1,1] + R[1,2] 
+    x2 = t_x2*R[0,0] + t_y2*R[0,1] + R[0,2] 
+    y2 = t_x2*R[1,0] + t_y2*R[1,1] + R[1,2] 
+    x3 = t_x3*R[0,0] + t_y3*R[0,1] + R[0,2] 
+    y3 = t_x3*R[1,0] + t_y3*R[1,1] + R[1,2] 
+    points = np.array([[float(x0),float(y0)],[float(x1),float(y1)],[float(x2),float(y2)],[float(x3),float(y3)]])
+    return points
+
+
 class BoxDataSet(Dataset):
     def __init__(self, split="train", dataset_dir = None):
         super(BoxDataSet, self).__init__()
@@ -62,7 +131,7 @@ class BoxDataSet(Dataset):
         a = theta / 180 * math.pi
         # if a >  0.5*math.pi: a = math.pi - a
         # if a < -0.5*math.pi: a = math.pi + a
-        if a < 0: a = math.pi + a
+        # if a < 0: a = math.pi + a
         return np.array([cx, cy, w, h, a])
     
     def convert_cc_to_c(self, corners):
@@ -228,7 +297,7 @@ def parse_out(pred:torch.Tensor):
     # p3 = (pred[..., 3] - 0.5) * HEIGHT
     p2 = (pred[..., 2] * 0.5) * WIDITH
     p3 = (pred[..., 3] * 0.5) * HEIGHT
-    p4 = pred[..., 4] * np.pi
+    p4 = pred[..., 4] * np.pi/2
     return torch.stack([p0,p1,p2,p3,p4], dim=-1)
 
 
@@ -244,7 +313,7 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
     ds_test = BoxDataSet("test", dataset_dir)
     ld_train = DataLoader(ds_train, batchsize, drop_last=False, shuffle=True, num_workers=4)
     ld_test = DataLoader(ds_test, batchsize, shuffle=False, num_workers=4)
-    
+    SM = nn.SmoothL1Loss(reduction='mean')
     # net = RobNet()
     net = BobNet(pretrained = True, bk_weight_filepath = 'weights/modelM3.pth')
     net.to("cuda:0")
@@ -281,15 +350,17 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
                 iou_loss, iou = cal_diou(pred, label, enclosing_type)
             else:
                 ValueError("unknown loss type")
+            angle_loss = SM(pred[:,:,4],label[:,:,4])
             iou_loss = torch.mean(iou_loss)
-            iou_loss.backward()
+            loss = iou_loss + angle_loss
+            loss.backward()
             optimizer.step()
 
             if i%10 == 0:
                 iou_mask = (iou > 0).float()
                 mean_iou = torch.sum(iou) / (torch.sum(iou_mask) + 1e-8)
                 print("[Epoch %d: %d/%d] train loss: %.4f  mean_iou: %.4f"
-                    %(epoch, i, num_batch, iou_loss.detach().cpu().item(), mean_iou.detach().cpu().item()))
+                    %(epoch, i, num_batch, loss.detach().cpu().item(), mean_iou.detach().cpu().item()))
         lr_scheduler.step()
 
         # validate
@@ -319,8 +390,10 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
                     iou_loss, iou = cal_diou(pred, label, enclosing_type)
                 else:
                     ValueError("unknown loss type")
+                angle_loss = SM(pred[:,:,4],label[:,:,4])
                 iou_loss = torch.mean(iou_loss)
-                aver_loss += iou_loss.cpu().item()
+                loss = iou_loss + angle_loss
+                aver_loss += loss.cpu().item()
                 iou_mask = (iou > 0).float()
                 mean_iou = torch.sum(iou) / (torch.sum(iou_mask) + 1e-8)
                 aver_mean_iou += mean_iou.cpu().item()
