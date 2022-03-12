@@ -118,7 +118,7 @@ class BoxDataSet(Dataset):
         super(BoxDataSet, self).__init__()
         assert split in ["train", "test"], "split must be train or test"
         self.split = split
-    
+        self.transform = transform
         dataset = np.load(os.path.join(dataset_dir, split+".npz"))
         self.data = dataset['images'] ##(n, 32, 32)
         self.label = dataset['boxes'] ###(n, (top_left, down_left, down_right, top_right), (x, y))
