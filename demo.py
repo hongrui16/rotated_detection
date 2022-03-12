@@ -539,6 +539,8 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", type=str, default=None, help="gpu id")
     parser.add_argument("--n_epoch", type=int, default=100, help="num of epoch")
     parser.add_argument("--mode", type=str, default='xywha', help="train mode")
+    parser.add_argument("--use_angle_loss", action='store_true', default=False, help="use angle loss")
+  
 
     flags = parser.parse_args()
     
