@@ -155,7 +155,7 @@ class BoxDataSet(Dataset):
         l = self.convert_cc_to_c(l)
         l = self.convert_corners_to_xywha(l)
 
-        return x, torch.FloatTensor(l)
+        return torch.FloatTensor(x), torch.FloatTensor(l)
 
 
 class CornersDataSet(Dataset):
