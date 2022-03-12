@@ -321,9 +321,9 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
     transform = transforms.Compose([
         transforms.GaussianBlur(kernel_size=3),
         transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
-        transforms.RandomPosterize(bits=2),
-        transforms.RandomSolarize(threshold=100),
-        transforms.RandomEqualize()
+        # transforms.RandomPosterize(bits=2),
+        # transforms.RandomSolarize(threshold=100),
+        # transforms.RandomEqualize()
     ])
 
     ds_train = BoxDataSet("train", dataset_dir, transform)
