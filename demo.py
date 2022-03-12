@@ -1,6 +1,7 @@
 '''
 hongrui
 '''
+from re import X
 import cv2
 import torch
 import numpy as np
@@ -12,6 +13,8 @@ from utiles import box2corners
 from oriented_iou_loss import cal_diou, cal_giou
 import math
 import torchvision.models as models
+from PIL import Image
+from torchvision import transforms
 
 import torch
 import torch.nn as nn
@@ -111,7 +114,7 @@ def xywha2points(x):
 
 
 class BoxDataSet(Dataset):
-    def __init__(self, split="train", dataset_dir = None):
+    def __init__(self, split="train", dataset_dir = None, transform=None):
         super(BoxDataSet, self).__init__()
         assert split in ["train", "test"], "split must be train or test"
         self.split = split
@@ -141,13 +144,18 @@ class BoxDataSet(Dataset):
         return self.data.shape[0]
 
     def __getitem__(self, index: int) :
-        d = self.data[index, ...]
-        d = cv2.resize(d, (WIDITH, HEIGHT))
+        x = self.data[index, ...]
+        x = Image.fromarray(x)
+        x = x.resize((WIDITH, HEIGHT))
+        if self.transform:
+            x = self.transform(x)
+        x = transforms.ToTensor()(np.array(x)/255)
 
         l = self.label[index, ...].astype(np.int32)
         l = self.convert_cc_to_c(l)
         l = self.convert_corners_to_xywha(l)
-        return torch.FloatTensor(d), torch.FloatTensor(l)
+
+        return x, torch.FloatTensor(l)
 
 
 class CornersDataSet(Dataset):
@@ -309,16 +317,29 @@ def parse_corners(pred:torch.Tensor):
 
 def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=None, batchsize:int = 128, args = None):
     n_epoch = args.n_epoch
-    ds_train = BoxDataSet("train", dataset_dir)
+        
+    transform = transforms.Compose([
+        transforms.GaussianBlur(kernel_size=3),
+        transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+        transforms.RandomPosterize(bits=2),
+        transforms.RandomSolarize(threshold=100),
+        transforms.RandomEqualize()
+    ])
+
+    ds_train = BoxDataSet("train", dataset_dir, transform)
     ds_test = BoxDataSet("test", dataset_dir)
     ld_train = DataLoader(ds_train, batchsize, drop_last=False, shuffle=True, num_workers=4)
     ld_test = DataLoader(ds_test, batchsize, shuffle=False, num_workers=4)
+
+
+
     SM = nn.SmoothL1Loss(reduction='mean')
     # net = RobNet()
     net = BobNet(pretrained = True, bk_weight_filepath = 'weights/modelM3.pth')
     net.to("cuda:0")
     optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+
     num_batch = len(ds_train)//(batchsize)
     
     for epoch in range(1, n_epoch+1):
@@ -344,6 +365,7 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
             # print('pred', pred.size())    ##([256, 1, 5])
             print('train, pre, gt', pred[0].detach().to('cpu').numpy(), label[0].detach().to('cpu').numpy())
             iou_loss, iou = None, None
+            angle_loss = None
             if loss_type == "giou":
                 iou_loss, iou = cal_giou(pred, label, enclosing_type)
             elif loss_type == "diou":
@@ -385,6 +407,7 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
                 # print()
                 print('val, pre, gt', pred[0].detach().to('cpu').numpy(), label[0].detach().to('cpu').numpy())
                 iou_loss, iou = None, None
+                angle_loss = None
                 if loss_type == "giou":
                     iou_loss, iou = cal_giou(pred, label, enclosing_type)
                 elif loss_type == "diou":
