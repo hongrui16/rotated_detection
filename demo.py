@@ -342,7 +342,7 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
             # print('pred 0', pred.size())    ##([256, 1, 5])
             pred = parse_out(pred)
             # print('pred', pred.size())    ##([256, 1, 5])
-            print(pred[0].detach().to('cpu').numpy(), label[0].detach().to('cpu').numpy())
+            print('train, pre, gt', pred[0].detach().to('cpu').numpy(), label[0].detach().to('cpu').numpy())
             iou_loss, iou = None, None
             if loss_type == "giou":
                 iou_loss, iou = cal_giou(pred, label, enclosing_type)
@@ -352,7 +352,7 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
                 ValueError("unknown loss type")
             angle_loss = SM(pred[:,:,4],label[:,:,4])
             iou_loss = torch.mean(iou_loss)
-            loss = iou_loss + angle_loss
+            loss = iou_loss + 0.33*angle_loss
             loss.backward()
             optimizer.step()
 
@@ -383,6 +383,7 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
                 pred = pred.view([image.size()[0], -1, 5])     
                 pred = parse_out(pred)
                 # print()
+                print('val, pre, gt', pred[0].detach().to('cpu').numpy(), label[0].detach().to('cpu').numpy())
                 iou_loss, iou = None, None
                 if loss_type == "giou":
                     iou_loss, iou = cal_giou(pred, label, enclosing_type)
@@ -392,16 +393,17 @@ def main(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=Non
                     ValueError("unknown loss type")
                 angle_loss = SM(pred[:,:,4],label[:,:,4])
                 iou_loss = torch.mean(iou_loss)
-                loss = iou_loss + angle_loss
+                loss = iou_loss + 0.33*angle_loss
                 aver_loss += loss.cpu().item()
                 iou_mask = (iou > 0).float()
                 mean_iou = torch.sum(iou) / (torch.sum(iou_mask) + 1e-8)
                 aver_mean_iou += mean_iou.cpu().item()
         print("... validate epoch %d ..."%epoch)
         n_iter = len(ds_test)/batchsize
-        print("average loss: %.4f"%(aver_loss/n_iter))
-        print("average iou: %.4f"%(aver_mean_iou/n_iter))
-        print("..............................")
+        print("val: average loss: %.4f"%(aver_loss/n_iter))
+        print("val: average iou: %.4f"%(aver_mean_iou/n_iter))
+        # print("..............................")
+        print()
 
 
 def YOLO_COR(loss_type:str="giou", enclosing_type:str="aligned", dataset_dir:str=None, batchsize:int = 128, args = None):
