@@ -149,13 +149,13 @@ class BoxDataSet(Dataset):
         x = x.resize((WIDITH, HEIGHT))
         if self.transform:
             x = self.transform(x)
-        x = transforms.ToTensor()(np.array(x)/255)
+        # x = transforms.ToTensor()(np.array(x)/255)
 
         l = self.label[index, ...].astype(np.int32)
         l = self.convert_cc_to_c(l)
         l = self.convert_corners_to_xywha(l)
 
-        return torch.FloatTensor(x), torch.FloatTensor(l)
+        return torch.FloatTensor(np.array(x)/255), torch.FloatTensor(l)
 
 
 class CornersDataSet(Dataset):
